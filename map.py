@@ -8,7 +8,7 @@ def get_pos(lat, lng):
 
 # Initialize session state to store marker location
 if "marker_location" not in st.session_state:
-    st.session_state.marker_location = [43.238949, 76.889709]  # Default location
+    st.session_state.marker_location = [37.56325563600076, 126.93753719329834]  # Default location set to Yonsei Sinchon Campus
     st.session_state.zoom = 11  # Default zoom
 
 # Create the base map
