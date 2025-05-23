@@ -38,10 +38,10 @@ def update():
 
 def submit():
     if all([name, problem_title, problem_description, date, time]):
-        st.toast("Form submitted")
+        st.toast("Form submitted", icon="✅")
         # Other logic here
     else:
-        st.toast("Please input all necessary infos.")
+        st.toast("Please input all necessary infos.", icon="⁉️")
 
 """
 ### Click in the map to choose location
