@@ -36,6 +36,9 @@ def update():
         st.session_state.marker_location = [lat, lng]  # Update session state with new marker location
         st.session_state.zoom = fmap["zoom"] # Update session state with new zoom value 
 
+def submit():
+    st.toast("Form submitted")
+    print(f"{name=} {problem_title=}")
 
 """
 ### Click in the map to choose location
@@ -47,3 +50,10 @@ fmap = st_folium(m, center=st.session_state["marker_location"], zoom=st.session_
 # Write coordinates
 coordtext = f"Coordinates: {st.session_state.marker_location}"
 st.write(coordtext)
+with st.form("my_form", clear_on_submit=True, enter_to_submit=False):
+    name = st.text_input("Your name:", placeholder="John Doe")
+    problem_title = st.text_input("Problem title:", placeholder="Problem")
+    problem_description = st.text_area("Problem description:", placeholder="Write as detailed as possible...")
+    date = st.date_input("Date:")
+    date = st.time_input("Time:", step=60)
+    submit = st.form_submit_button(on_click=submit)
