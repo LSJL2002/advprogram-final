@@ -2,6 +2,17 @@ import streamlit as st
 import folium
 from streamlit_folium import st_folium
 from streamlit_option_menu import option_menu
+import os.path
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
+
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+SPREADSHEET_ID = "11qkTYSB8I5yIfnCZmrCiSzCbN2y4etuI7OoeS4N_FDc"
+SHEET_RANGE = "Sheet1!A1"
+
 
 st.sidebar.title("Pages")
 
@@ -15,10 +26,7 @@ with st.sidebar:
     )
 
 if page == "Report Problem":
-    """
-    # Report a problem in Yonsei University
-    """
-
+    st.subheader("Report a problem in Yonsei University")
     CENTER_START = [37.56325563600076, 126.93753719329834]
 
     # Initialize session state to store marker location
@@ -49,25 +57,74 @@ if page == "Report Problem":
             st.session_state.zoom = fmap["zoom"] # Update session state with new zoom value 
 
     def submit():
-        if all([author, problem, description, date, time]):
-            st.toast("Form submitted", icon="✅")
-            # Other logic here
-        else:
-            st.toast("Please input all necessary infos.", icon="⁉️")
-
-
+            if all([author, problem, description, date, time]):
+                # Prepare values to save
+                values = [
+                    str(author),
+                    str(problem),
+                    str(description),
+                    str(date),
+                    str(time),
+                    str(st.session_state.marker_location)
+                ]
+                result = save_to_sheet(values)
+                if result:
+                    st.toast("Form submitted and saved to Google Sheet!", icon="✅")
+                else:
+                    st.toast("Failed to save to Google Sheet.", icon="❌")
+            else:
+                st.toast("Please input all necessary infos.", icon="⁉️")
+    def save_to_sheet(values):
+        creds = None
+        if os.path.exists("token.json"):
+            creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    "credentials.json", SCOPES
+                )
+                creds = flow.run_local_server(port=0)
+            with open("token.json", "w") as token:
+                token.write(creds.to_json())
+        try:
+            service = build("sheets", "v4", credentials=creds)
+            sheet = service.spreadsheets()
+            # Find the next empty row
+            result = sheet.values().get(
+                spreadsheetId=SPREADSHEET_ID,
+                range="Sheet1!A:A"
+            ).execute()
+            num_rows = len(result.get("values", []))
+            next_row = num_rows + 1
+            target_range = f"Sheet1!A{next_row}:F{next_row}"
+            update_result = sheet.values().update(
+                spreadsheetId=SPREADSHEET_ID,
+                range=target_range,
+                valueInputOption="RAW",
+                body={"values": [values]},
+            ).execute()
+            return update_result
+        except HttpError as err:
+            print(err)
+            return None
+    
     # Create the base map
     m = folium.Map(location=CENTER_START, zoom_start=16)
     st.markdown("### Click in the map to choose location", unsafe_allow_html=True)
-
-
     # Render the map and capture clicks
-    fmap = st_folium(m, center=st.session_state["marker_location"], zoom=st.session_state["zoom"], feature_group_to_add=fg,width=620, height=580, key="folium_map", on_change=update)
-
-
-    # Write coordinates
-    coordtext = f"Coordinates: {st.session_state.marker_location}"
-    st.write(coordtext)
+    fmap = st_folium(m, center=st.session_state["marker_location"], zoom=st.session_state["zoom"], feature_group_to_add=fg,width=620, height=600, key="folium_map", on_change=update)
+    st.markdown("<style>div.block-container { padding-top: 1rem; }</style>", unsafe_allow_html=True) #Reduces the space between the map and form
+    st.markdown("""
+    <style>
+    .block-container {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    st.write(f"Coordinates: {st.session_state.marker_location}")
     with st.form("my_form", clear_on_submit=False, enter_to_submit=False):
         author = st.text_input("Your name:*", placeholder="John Doe")
         problem = st.text_input("Problem title:*", placeholder="Problem")
