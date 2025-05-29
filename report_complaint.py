@@ -8,13 +8,12 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+import os
 
 
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
 SHEET_RANGE = "Sheet1!A1"
-
-
 st.sidebar.title("Pages")
 
 with st.sidebar:
