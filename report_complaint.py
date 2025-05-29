@@ -14,6 +14,8 @@ import os
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
 SHEET_RANGE = "Sheet1!A1"
+
+
 st.sidebar.title("Pages")
 
 with st.sidebar:
@@ -125,13 +127,12 @@ if page == "Report Problem":
     </style>
     """, unsafe_allow_html=True)
     st.write(f"Coordinates: {st.session_state.marker_location}")
-    with st.form("my_form", clear_on_submit=False, enter_to_submit=False):
-        author = st.text_input("Your name:*", placeholder="John Doe")
-        problem = st.text_input("Problem title:*", placeholder="Problem")
-        description = st.text_area("Problem description:*", placeholder="Write as detailed as possible...")
-        date = st.date_input("Date:*")
-        time = st.time_input("Time:*", step=60)
-        submit_btn = st.form_submit_button(on_click=submit)
+    author = st.text_input("Your name:*", placeholder="John Doe")
+    problem = st.text_input("Problem title:*", placeholder="Problem")
+    description = st.text_area("Problem description:*", placeholder="Write as detailed as possible...")
+    date = st.date_input("Date:*")
+    time = st.time_input("Time:*", step=60)
+    submit_btn = st.button("submit", on_click=submit)
 
 elif page == "Other Page":
     """
