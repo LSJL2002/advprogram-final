@@ -131,7 +131,7 @@ if page == "Report Problem":
         description = st.text_area("Problem description:*", placeholder="Write as detailed as possible...")
         date = st.date_input("Date:*")
         time = st.time_input("Time:*", step=60)
-        submit = st.form_submit_button(on_click=submit)
+        submit_btn = st.form_submit_button(on_click=submit)
 
 elif page == "Other Page":
     """
