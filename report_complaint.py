@@ -9,8 +9,9 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
+
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
-SPREADSHEET_ID = "11qkTYSB8I5yIfnCZmrCiSzCbN2y4etuI7OoeS4N_FDc"
+SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
 SHEET_RANGE = "Sheet1!A1"
 
 
