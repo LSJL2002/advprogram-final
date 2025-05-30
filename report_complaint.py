@@ -2,18 +2,7 @@ import streamlit as st
 import folium
 from streamlit_folium import st_folium
 from streamlit_option_menu import option_menu
-import os.path
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
-import os
-
-
-SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
-SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
-SHEET_RANGE = "Sheet1!A1"
+from utils import save_to_sheet
 
 
 st.sidebar.title("Pages")
@@ -76,56 +65,14 @@ if page == "Report Problem":
                     st.toast("Failed to save to Google Sheet.", icon="❌")
             else:
                 st.toast("Please input all necessary infos.", icon="⁉️")
-    def save_to_sheet(values):
-        creds = None
-        if os.path.exists("token.json"):
-            creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-            else:
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    "credentials.json", SCOPES
-                )
-                creds = flow.run_local_server(port=0)
-            with open("token.json", "w") as token:
-                token.write(creds.to_json())
-        try:
-            service = build("sheets", "v4", credentials=creds)
-            sheet = service.spreadsheets()
-            # Find the next empty row
-            result = sheet.values().get(
-                spreadsheetId=SPREADSHEET_ID,
-                range="Sheet1!A:A"
-            ).execute()
-            num_rows = len(result.get("values", []))
-            next_row = num_rows + 1
-            target_range = f"Sheet1!A{next_row}:F{next_row}"
-            update_result = sheet.values().update(
-                spreadsheetId=SPREADSHEET_ID,
-                range=target_range,
-                valueInputOption="RAW",
-                body={"values": [values]},
-            ).execute()
-            return update_result
-        except HttpError as err:
-            print(err)
-            return None
+    
     
     # Create the base map
     m = folium.Map(location=CENTER_START, zoom_start=16)
     st.markdown("### Click in the map to choose location", unsafe_allow_html=True)
     # Render the map and capture clicks
     fmap = st_folium(m, center=st.session_state["marker_location"], zoom=st.session_state["zoom"], feature_group_to_add=fg,width=620, height=600, key="folium_map", on_change=update)
-    st.markdown("<style>div.block-container { padding-top: 1rem; }</style>", unsafe_allow_html=True) #Reduces the space between the map and form
-    st.markdown("""
-    <style>
-    .block-container {
-        padding-top: 1rem;
-        padding-bottom: 1rem;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+    
     st.write(f"Coordinates: {st.session_state.marker_location}")
     author = st.text_input("Your name:*", placeholder="John Doe")
     problem = st.text_input("Problem title:*", placeholder="Problem")
