@@ -1,8 +1,9 @@
+import pandas as pd
 import streamlit as st
 import folium
 from streamlit_folium import st_folium
 from streamlit_option_menu import option_menu
-from utils import save_to_sheet
+from utils import save_to_sheet, get_data_from_sheet
 
 
 st.sidebar.title("Pages")
@@ -11,8 +12,8 @@ with st.sidebar:
     page = option_menu(
         "Pages",
         ["Report Problem", "View Problems"],
-        icons=["exclmation-circle", "file-earmark"],
-        menu_icon="cast",
+        icons=["exclamation-circle", "eye"],
+        menu_icon="list",
         default_index=0,
     )
 
@@ -68,12 +69,13 @@ if page == "Report Problem":
     
     
     # Create the base map
-    m = folium.Map(location=CENTER_START, zoom_start=16)
     st.markdown("### Click in the map to choose location", unsafe_allow_html=True)
+    m = folium.Map(location=CENTER_START, zoom_start=16)
+    st.write("<style>iframe[title='streamlit_folium.st_folium'] { height: 600px;}</style>", unsafe_allow_html=True)
     # Render the map and capture clicks
-    fmap = st_folium(m, center=st.session_state["marker_location"], zoom=st.session_state["zoom"], feature_group_to_add=fg,width=620, height=600, key="folium_map", on_change=update)
-    
+    fmap = st_folium(m, center=st.session_state["marker_location"], zoom=st.session_state["zoom"], feature_group_to_add=fg, width=620, height=600, key="folium_map", on_change=update)
     st.write(f"Coordinates: {st.session_state.marker_location}")
+    st.markdown("---")
     author = st.text_input("Your name:*", placeholder="John Doe")
     problem = st.text_input("Problem title:*", placeholder="Problem")
     description = st.text_area("Problem description:*", placeholder="Write as detailed as possible...")
@@ -81,7 +83,37 @@ if page == "Report Problem":
     time = st.time_input("Time:*", step=60)
     submit_btn = st.button("submit", on_click=submit)
 
-elif page == "Other Page":
+elif page == "View Problems":
     """
-    #Testing
+    # View Problems
     """
+
+    data = get_data_from_sheet()
+    if data:
+        # Display the data in a table format
+        st.write("## Reported Problems")
+        columns = ["Author", "Problem Title", "Description", "Date", "Time", "Location"]
+        df = pd.DataFrame(data, columns=columns)
+        st.dataframe(df, use_container_width=True)
+        st.markdown("---")
+        st.write("### Map of Reported Problems")
+        # Create a map
+        CENTER_START = [37.56325563600076, 126.93753719329834]
+        m = folium.Map(location=CENTER_START, zoom_start=16)
+        # Create FeatureGroup for marker
+        fg = folium.FeatureGroup(name="Marker")
+        # Add marker to the group
+        for row in data:
+            lat, lng = row[-1].strip("[]").split(", ")
+            lat, lng = float(lat), float(lng)
+            fg.add_child(
+                folium.Marker(
+                location=[lat, lng],
+                draggable=False,
+                popup=row[1],
+                tooltip=row[1],
+                icon=folium.Icon(icon="exclamation", prefix='fa', color='red', icon_color='white')
+            ))
+        st_folium(m, width=620, height=600, feature_group_to_add=fg, key="folium_map_view")
+    else:
+        st.write("No problems reported yet.")

@@ -10,28 +10,28 @@ from googleapiclient.errors import HttpError
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
 SHEET_RANGE = "Sheet1!A1"
+SHEET_DATA_RANGE = "Sheet1!A1:F1"  # Adjust the range as needed
 
+def credentials():
+    creds = None
+    if os.path.exists("token.json"):
+        creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                "credentials.json", SCOPES
+            )
+            creds = flow.run_local_server(port=0)
+        with open("token.json", "w") as token:
+            token.write(creds.to_json())
+    return creds
 
 def append_values(spreadsheet_id, range_name, value_input_option, _values):
-  creds = None
-  if os.path.exists("token.json"):
-    creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-  # If there are no (valid) credentials available, let the user log in.
-  if not creds or not creds.valid:
-    if creds and creds.expired and creds.refresh_token:
-      creds.refresh(Request())
-    else:
-      flow = InstalledAppFlow.from_client_secrets_file(
-          "credentials.json", SCOPES
-      )
-      creds = flow.run_local_server(port=0)
-    # Save the credentials for the next run
-    with open("token.json", "w") as token:
-      token.write(creds.to_json())
-  # pylint: disable=maybe-no-member
+  creds = credentials()
   try:
     service = build("sheets", "v4", credentials=creds)
-
     values = [
         [
             # Cell values ...
@@ -70,3 +70,39 @@ def save_to_sheet(values):
         # print(f"An error occurred: {result}")
         return None
     return result
+
+def get_data_from_sheet():
+    creds = credentials()
+    try:
+        service = build("sheets", "v4", credentials=creds)
+        
+        service = build("sheets", "v4", credentials=creds)
+        sheet_metadata = service.spreadsheets().get(spreadsheetId=SPREADSHEET_ID).execute()
+        sheet_name = sheet_metadata['sheets'][0]['properties']['title']
+        # Find the next empty row
+        result = service.spreadsheets().values().get(
+            spreadsheetId=SPREADSHEET_ID,
+            range="Sheet1!A:A"
+        ).execute()
+        num_rows = len(result.get("values", [])) + 1
+        # Skip the first row (header), get all remaining rows
+        range_names = [f"{sheet_name}!A2:F{num_rows}"]
+        result = (
+            service.spreadsheets()
+            .values()
+            .batchGet(spreadsheetId=SPREADSHEET_ID, ranges=range_names)
+            .execute()
+        )
+
+        return result.get("valueRanges", [])[0].get("values", [])
+    except HttpError:
+        return None
+    
+
+
+if __name__ == "__main__":
+    data = get_data_from_sheet()
+    if data:
+        print("Data retrieved successfully:", data)
+    else:
+        print("Failed to retrieve data.")
