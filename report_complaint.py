@@ -9,7 +9,12 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 import os
+from dotenv import load_dotenv
+from functions import get_sheet_data
+from functions import shorten_coords
+import pandas as pd
 
+load_dotenv()
 
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
@@ -117,14 +122,6 @@ if page == "Report Problem":
     # Render the map and capture clicks
     fmap = st_folium(m, center=st.session_state["marker_location"], zoom=st.session_state["zoom"], feature_group_to_add=fg,width=620, height=600, key="folium_map", on_change=update)
     st.markdown("<style>div.block-container { padding-top: 1rem; }</style>", unsafe_allow_html=True) #Reduces the space between the map and form
-    st.markdown("""
-    <style>
-    .block-container {
-        padding-top: 1rem;
-        padding-bottom: 1rem;
-    }
-    </style>
-    """, unsafe_allow_html=True)
     st.write(f"Coordinates: {st.session_state.marker_location}")
     author = st.text_input("Your name:*", placeholder="John Doe")
     problem = st.text_input("Problem title:*", placeholder="Problem")
@@ -133,7 +130,19 @@ if page == "Report Problem":
     time = st.time_input("Time:*", step=60)
     submit_btn = st.button("submit", on_click=submit)
 
-elif page == "Other Page":
-    """
-    #Testing
-    """
+elif page == "View Problems":
+    st.subheader("Reported Problems Table")
+
+    data = get_sheet_data()
+    if data:
+        if len(data) > 1:
+            df = pd.DataFrame(data[1:], columns=data[0])
+        else:
+            df = pd.DataFrame(columns=data[0] if data else [])
+        # Shorten coordinates column if it exists
+        if not df.empty and "coordinates" in df.columns[-1].lower():
+            coord_col = df.columns[-1]
+            df[coord_col] = df[coord_col].apply(shorten_coords)
+        # Set index to start from 1
+        df.index = range(1, len(df) + 1)
+        st.dataframe(df)
