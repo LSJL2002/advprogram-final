@@ -3,7 +3,7 @@ import streamlit as st
 import folium
 from streamlit_folium import st_folium
 from streamlit_option_menu import option_menu
-from utils import save_to_sheet, get_data_from_sheet
+from utils import save_to_sheet, get_data_from_sheet, shorten_coords
 
 
 st.sidebar.title("Pages")
@@ -62,6 +62,7 @@ if page == "Report Problem":
                 result = save_to_sheet(values)
                 if result:
                     st.toast("Form submitted and saved to Google Sheet!", icon="✅")
+                    st.session_state.data_updated = True
                 else:
                     st.toast("Failed to save to Google Sheet.", icon="❌")
             else:
@@ -84,36 +85,40 @@ if page == "Report Problem":
     submit_btn = st.button("submit", on_click=submit)
 
 elif page == "View Problems":
-    """
-    # View Problems
-    """
+    if st.session_state.get("last_page") != "View Problems" or st.session_state.get("data_updated", False):
+        st.session_state.view_data = get_data_from_sheet()
+        st.session_state.last_page = "View Problems"
+        st.session_state.data_updated = False  # Reset the flag after updating
 
-    data = get_data_from_sheet()
+    data = st.session_state.get("view_data", [])
+
     if data:
-        # Display the data in a table format
         st.write("## Reported Problems")
         columns = ["Author", "Problem Title", "Description", "Date", "Time", "Location"]
         df = pd.DataFrame(data, columns=columns)
+        if not df.empty and "Location" in df.columns:
+            df["Location"] = df["Location"].apply(shorten_coords)
         st.dataframe(df, use_container_width=True)
+
         st.markdown("---")
         st.write("### Map of Reported Problems")
-        # Create a map
+
         CENTER_START = [37.56325563600076, 126.93753719329834]
         m = folium.Map(location=CENTER_START, zoom_start=16)
-        # Create FeatureGroup for marker
         fg = folium.FeatureGroup(name="Marker")
-        # Add marker to the group
+
         for row in data:
             lat, lng = row[-1].strip("[]").split(", ")
             lat, lng = float(lat), float(lng)
             fg.add_child(
                 folium.Marker(
-                location=[lat, lng],
-                draggable=False,
-                popup=row[1],
-                tooltip=row[1],
-                icon=folium.Icon(icon="exclamation", prefix='fa', color='red', icon_color='white')
-            ))
+                    location=[lat, lng],
+                    draggable=False,
+                    popup=row[1],
+                    tooltip=row[1],
+                    icon=folium.Icon(icon="exclamation", prefix='fa', color='red', icon_color='white')
+                )
+            )
         st_folium(m, width=620, height=600, feature_group_to_add=fg, key="folium_map_view")
     else:
         st.write("No problems reported yet.")

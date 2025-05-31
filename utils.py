@@ -98,6 +98,13 @@ def get_data_from_sheet():
     except HttpError:
         return None
     
+def shorten_coords(coord_str):
+            try:
+                lat, lng = [float(x) for x in coord_str.strip("[]").split(",")]
+                return f"[{lat:.3f}, {lng:.3f}]"
+            except Exception:
+                return coord_str
+    
 
 
 if __name__ == "__main__":
