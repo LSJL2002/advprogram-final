@@ -104,6 +104,7 @@ elif page == "View Problems":
         columns = ["Author", "Problem Title", "Description", "Date", "Time", "Location"]
         df = pd.DataFrame(data, columns=columns)
         if not df.empty and "Location" in df.columns:
+            df["Full_Location"] = df["Location"]
             df["Location"] = df["Location"].apply(shorten_coords)
         st.dataframe(df, use_container_width=True)
 
@@ -130,6 +131,8 @@ elif page == "View Problems":
     else:
         st.write("No problems reported yet.")
     
+
+    #A new map with a slider that will show the problems based on the date
     df["Date"] = pd.to_datetime(df["Date"])
 
     min_date = df["Date"].min().date()
@@ -154,7 +157,7 @@ elif page == "View Problems":
         st.write("✅ There are no problems reported on this date!")
     else:
         for _, row in filtered_df.iterrows():
-            lat, lng = row["Location"].strip("[]").split(", ")
+            lat, lng = row["Full_Location"].strip("[]").split(", ")
             lat, lng = float(lat), float(lng)
             fg_filtered.add_child(
                 folium.Marker(
