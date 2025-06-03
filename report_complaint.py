@@ -4,8 +4,10 @@ import folium
 from streamlit_folium import st_folium
 from streamlit_option_menu import option_menu
 from utils import save_to_sheet, get_data_from_sheet, shorten_coords
-from dotenv import load_dotenv
+from dotenv import load_dotenv #Do not delete this, I need it for the .env to work
 from datetime import timedelta
+import plotly.express as px
+
 
 
 load_dotenv()
@@ -135,9 +137,9 @@ elif page == "View Problems":
     #A new map with a slider that will show the problems based on the date
     df["Date"] = pd.to_datetime(df["Date"])
 
-    min_date = df["Date"].min().date()
-    max_date = df["Date"].max().date()
-    if min_date == max_date:
+    min_date = df["Date"].min().date() #Gets the min date of the google sheets
+    max_date = df["Date"].max().date() #Max date of the google sheets
+    if min_date == max_date: #There is a bug if the min date and max date is the same the slider will not work.
         max_date += timedelta(days=1)
     selected_date = st.slider(
         "Select a date to view problems:",
@@ -169,5 +171,33 @@ elif page == "View Problems":
                 )
             )
 
-        st.markdown("### Map of Problems Reported on Selected Date")
-        st_folium(m_filtered, width=620, height=600, feature_group_to_add=fg_filtered, key="filtered_map")
+    st.markdown("### Map of Problems Reported on Selected Date")
+    st_folium(m_filtered, width=620, height=600, feature_group_to_add=fg_filtered, key="filtered_map")
+
+    if not filtered_df.empty:
+        # Ensure Time is datetime.time
+        filtered_df["Time"] = pd.to_datetime(filtered_df["Time"], format="%H:%M:%S").dt.time
+        filtered_df["Hour"] = filtered_df["Time"].apply(lambda t: t.hour)
+
+        # Group by Hour
+        grouped = filtered_df.groupby("Hour").agg({
+            "Problem Title": list,
+            "Author": "count"
+        }).reset_index().rename(columns={"Author": "Problem Count"})
+
+        # Create hover text from problem titles
+        grouped["Hover Text"] = grouped["Problem Title"].apply(lambda titles: "<br>".join(titles))
+
+        # Plot
+        fig = px.bar(
+            grouped,
+            x="Hour",
+            y="Problem Count",
+            hover_data={"Hover Text": True},
+            labels={"Hour": "Hour of the Day", "Problem Count": "Number of Problems"},
+            title="Problems Reported by Hour"
+        )
+        fig.update_traces(hovertemplate='%{customdata[0]}', customdata=grouped[["Hover Text"]].values)
+        fig.update_layout(xaxis=dict(dtick=1))
+
+        st.plotly_chart(fig, use_container_width=True)
