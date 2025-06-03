@@ -4,6 +4,11 @@ import folium
 from streamlit_folium import st_folium
 from streamlit_option_menu import option_menu
 from utils import save_to_sheet, get_data_from_sheet, shorten_coords
+from dotenv import load_dotenv
+from datetime import timedelta
+
+
+load_dotenv()
 
 
 st.sidebar.title("Pages")
@@ -84,6 +89,8 @@ if page == "Report Problem":
     time = st.time_input("Time:*", step=60)
     submit_btn = st.button("submit", on_click=submit)
 
+
+
 elif page == "View Problems":
     if st.session_state.get("last_page") != "View Problems" or st.session_state.get("data_updated", False):
         st.session_state.view_data = get_data_from_sheet()
@@ -122,3 +129,42 @@ elif page == "View Problems":
         st_folium(m, width=620, height=600, feature_group_to_add=fg, key="folium_map_view")
     else:
         st.write("No problems reported yet.")
+    
+    df["Date"] = pd.to_datetime(df["Date"])
+
+    min_date = df["Date"].min().date()
+    max_date = df["Date"].max().date()
+    if min_date == max_date:
+        max_date += timedelta(days=1)
+    selected_date = st.slider(
+        "Select a date to view problems:",
+        min_value=min_date,
+        max_value=max_date,
+        value=min_date,
+        format="YYYY-MM-DD"
+)
+
+    filtered_df = df[df["Date"].dt.date == selected_date]
+
+    CENTER_START = [37.56325563600076, 126.93753719329834]
+    m_filtered = folium.Map(location=CENTER_START, zoom_start=16)
+    fg_filtered = folium.FeatureGroup(name="Filtered Markers")
+
+    if filtered_df.empty:
+        st.write("✅ There are no problems reported on this date!")
+    else:
+        for _, row in filtered_df.iterrows():
+            lat, lng = row["Location"].strip("[]").split(", ")
+            lat, lng = float(lat), float(lng)
+            fg_filtered.add_child(
+                folium.Marker(
+                    location=[lat, lng],
+                    draggable=False,
+                    popup=row["Problem Title"],
+                    tooltip=row["Problem Title"],
+                    icon=folium.Icon(icon="exclamation", prefix='fa', color='red', icon_color='white')
+                )
+            )
+
+        st.markdown("### Map of Problems Reported on Selected Date")
+        st_folium(m_filtered, width=620, height=600, feature_group_to_add=fg_filtered, key="filtered_map")
