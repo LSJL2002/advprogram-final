@@ -6,6 +6,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from dotenv import load_dotenv
+import random
 
 load_dotenv()
 
@@ -108,12 +109,26 @@ def shorten_coords(coord_str):
                 return f"[{lat:.3f}, {lng:.3f}]"
             except Exception:
                 return coord_str
-    
+
+def generate_save_test_data():
+        test_data = []
+        # Approximate coordinates for Yonsei University, Seoul: [37.5665, 126.9386]
+        for i in range(10):
+            lat = round(random.uniform(37.560, 37.570), 6)
+            lng = round(random.uniform(126.930, 126.945), 6)
+            row = [
+            f"Author{i+1}",
+            f"Problem Title {i+1}",
+            f"Description for problem {i+1}",
+            "2025-06-04",
+            f"{random.randint(0,23):02d}:{random.randint(0,59):02d}:{random.randint(0,59):02d}",
+            f"[{lat}, {lng}]"
+            ]
+            test_data.append(row)
+        
+        for row in test_data:
+            save_to_sheet(row)
 
 
 if __name__ == "__main__":
-    data = get_data_from_sheet()
-    if data:
-        print("Data retrieved successfully:", data)
-    else:
-        print("Failed to retrieve data.")
+    generate_save_test_data()
