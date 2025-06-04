@@ -188,6 +188,12 @@ elif page == "View Problems":
         # Create hover text from problem titles
         grouped["Hover Text"] = grouped["Problem Title"].apply(lambda titles: "<br>".join(titles))
 
+        # Ensure all hours 0-23 are present
+        all_hours = pd.DataFrame({"Hour": list(range(24))})
+        grouped = all_hours.merge(grouped, on="Hour", how="left")
+        grouped["Problem Count"] = grouped["Problem Count"].fillna(0).astype(int)
+        grouped["Hover Text"] = grouped["Hover Text"].fillna("No problems reported")
+
         # Plot
         fig = px.bar(
             grouped,
@@ -197,7 +203,24 @@ elif page == "View Problems":
             labels={"Hour": "Hour of the Day", "Problem Count": "Number of Problems"},
             title="Problems Reported by Hour"
         )
-        fig.update_traces(hovertemplate='%{customdata[0]}', customdata=grouped[["Hover Text"]].values)
-        fig.update_layout(xaxis=dict(dtick=1))
+        fig.update_traces(
+            hovertemplate='%{customdata[0]}',
+            customdata=grouped[["Hover Text"]].values
+        )
+        fig.update_layout(
+            xaxis=dict(dtick=1),
+            dragmode=False
+            )
 
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(
+            fig,
+            use_container_width=True,
+            config={
+                "scrollZoom": False,
+                "displayModeBar": False,   
+                "staticPlot": False,       
+                "doubleClick": False,      
+                "editable": False,
+                "displaylogo": False
+            }
+        )
