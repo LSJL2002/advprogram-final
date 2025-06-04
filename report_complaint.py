@@ -166,6 +166,7 @@ elif page == "View Problems":
     if filtered_df.empty:
         st.write("✅ There are no problems reported on this date!")
     else:
+        st.write(f"**Total number of problems reported on {selected_date}: {len(filtered_df)}**")
         for _, row in filtered_df.iterrows():
             lat, lng = row["Full_Location"].strip("[]").split(", ")
             lat, lng = float(lat), float(lng)
