@@ -108,6 +108,14 @@ elif page == "View Problems":
         if not df.empty and "Location" in df.columns:
             df["Full_Location"] = df["Location"]
             df["Location"] = df["Location"].apply(shorten_coords)
+
+        # --- Author filter ---
+        unique_authors = df["Author"].dropna().unique().tolist()
+        unique_authors.sort()
+        author_filter = st.selectbox("Filter by Author", options=["All"] + unique_authors, index=0)
+        if author_filter != "All":
+            df = df[df["Author"] == author_filter]
+
         st.dataframe(df, use_container_width=True)
 
         st.markdown("---")
@@ -149,7 +157,7 @@ elif page == "View Problems":
         format="YYYY-MM-DD"
 )
 
-    filtered_df = df[df["Date"].dt.date == selected_date]
+    filtered_df = df[df["Date"].dt.date == selected_date].copy()
 
     CENTER_START = [37.56325563600076, 126.93753719329834]
     m_filtered = folium.Map(location=CENTER_START, zoom_start=16)
