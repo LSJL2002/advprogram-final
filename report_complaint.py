@@ -7,6 +7,7 @@ from utils import save_to_sheet, get_data_from_sheet, shorten_coords
 from dotenv import load_dotenv #Do not delete this, I need it for the .env to work
 from datetime import timedelta
 import plotly.express as px
+from complaint import Complaint
 
 
 
@@ -56,24 +57,24 @@ if page == "Report Problem":
             st.session_state.zoom = fmap["zoom"] # Update session state with new zoom value 
 
     def submit():
-            if all([author, problem, description, date, time]):
-                # Prepare values to save
-                values = [
-                    str(author),
-                    str(problem),
-                    str(description),
-                    str(date),
-                    str(time),
-                    str(st.session_state.marker_location)
-                ]
-                result = save_to_sheet(values)
-                if result:
-                    st.toast("Form submitted and saved to Google Sheet!", icon="✅")
-                    st.session_state.data_updated = True
-                else:
-                    st.toast("Failed to save to Google Sheet.", icon="❌")
+        if complaint.is_valid():
+            # Prepare values to save
+            values = [
+                str(complaint.author),
+                str(complaint.problem),
+                str(complaint.description),
+                str(complaint.date),
+                str(complaint.time),
+                str(complaint.location)
+            ]
+            result = save_to_sheet(values)
+            if result:
+                st.toast("Form submitted and saved to Google Sheet!", icon="✅")
+                st.session_state.data_updated = True
             else:
-                st.toast("Please input all necessary infos.", icon="⁉️")
+                st.toast("Failed to save to Google Sheet.", icon="❌")
+        else:
+            st.toast("Please input all necessary infos.", icon="⁉️")
     
     
     # Create the base map
@@ -84,11 +85,13 @@ if page == "Report Problem":
     fmap = st_folium(m, center=st.session_state["marker_location"], zoom=st.session_state["zoom"], feature_group_to_add=fg, width=620, height=600, key="folium_map", on_change=update)
     st.write(f"Coordinates: {st.session_state.marker_location}")
     st.markdown("---")
-    author = st.text_input("Your name:*", placeholder="John Doe")
-    problem = st.text_input("Problem title:*", placeholder="Problem")
-    description = st.text_area("Problem description:*", placeholder="Write as detailed as possible...")
-    date = st.date_input("Date:*")
-    time = st.time_input("Time:*", step=60)
+    complaint = Complaint()
+    complaint.author = st.text_input("Your name:*", placeholder="John Doe")
+    complaint.problem = st.text_input("Problem title:*", placeholder="Problem")
+    complaint.description = st.text_area("Problem description:*", placeholder="Write as detailed as possible...")
+    complaint.date = st.date_input("Date:*")
+    complaint.time = st.time_input("Time:*", step=60)
+    complaint.location = st.session_state.marker_location  # Use the marker location from session state
     submit_btn = st.button("submit", on_click=submit)
 
 
@@ -132,8 +135,8 @@ elif page == "View Problems":
                 folium.Marker(
                     location=[lat, lng],
                     draggable=False,
-                    popup=str(row._1),
-                    tooltip=str(row.Description),
+                    popup=str(row.Description),
+                    tooltip=str(row._1),
                     icon=folium.Icon(icon="exclamation", prefix='fa', color='red', icon_color='white')
                 )
             )
