@@ -17,6 +17,7 @@ SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
 SHEET_RANGE = "Sheet1!A1"
 SHEET_DATA_RANGE = "Sheet1!A1:G1"  # Adjust the range as needed
 
+
 def credentials():
     creds = None
     if os.path.exists("token.json"):
@@ -25,70 +26,70 @@ def credentials():
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                "credentials.json", SCOPES
-            )
+            flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
             creds = flow.run_local_server(port=0)
         with open("token.json", "w") as token:
             token.write(creds.to_json())
     return creds
 
-def append_values(spreadsheet_id, range_name, value_input_option, _values):
-  creds = credentials()
-  try:
-    service = build("sheets", "v4", credentials=creds)
-    values = [
-        [
-            # Cell values ...
-        ],
-        # Additional rows ...
-    ]
-    if _values:
-      values = [_values]
-    body = {"values": values}
-    result = (
-        service.spreadsheets()
-        .values()
-        .append(
-            spreadsheetId=spreadsheet_id,
-            range=range_name,
-            valueInputOption=value_input_option,
-            body=body,
-        )
-        .execute()
-    )
-    # print(f"{(result.get('updates').get('updatedCells'))} cells appended.")
-    return result
 
-  except HttpError as error:
-    # print(f"An error occurred: {error}")
-    return error
+def append_values(spreadsheet_id, range_name, value_input_option, _values):
+    creds = credentials()
+    try:
+        service = build("sheets", "v4", credentials=creds)
+        values = [
+            [
+                # Cell values ...
+            ],
+            # Additional rows ...
+        ]
+        if _values:
+            values = [_values]
+        body = {"values": values}
+        result = (
+            service.spreadsheets()
+            .values()
+            .append(
+                spreadsheetId=spreadsheet_id,
+                range=range_name,
+                valueInputOption=value_input_option,
+                body=body,
+            )
+            .execute()
+        )
+        # print(f"{(result.get('updates').get('updatedCells'))} cells appended.")
+        return result
+
+    except HttpError as error:
+        # print(f"An error occurred: {error}")
+        return error
+
 
 def save_to_sheet(values):
-    result = append_values(
-        SPREADSHEET_ID,
-        SHEET_RANGE,
-        "RAW",
-        values
-    )
+    result = append_values(SPREADSHEET_ID, SHEET_RANGE, "RAW", values)
     if isinstance(result, HttpError):
         # print(f"An error occurred: {result}")
         return None
     return result
 
+
 def get_data_from_sheet():
     creds = credentials()
     try:
         service = build("sheets", "v4", credentials=creds)
-        
+
         service = build("sheets", "v4", credentials=creds)
-        sheet_metadata = service.spreadsheets().get(spreadsheetId=SPREADSHEET_ID).execute()
-        sheet_name = sheet_metadata['sheets'][0]['properties']['title']
+        sheet_metadata = (
+            service.spreadsheets().get(spreadsheetId=SPREADSHEET_ID).execute()
+        )
+        sheet_name = sheet_metadata["sheets"][0]["properties"]["title"]
         # Find the next empty row
-        result = service.spreadsheets().values().get(
-            spreadsheetId=SPREADSHEET_ID,
-            range="Sheet1!A:A"
-        ).execute()
+        result = (
+            service.spreadsheets()
+            .values()
+            .get(spreadsheetId=SPREADSHEET_ID, range="Sheet1!A:A")
+            .execute()
+        )
         num_rows = len(result.get("values", [])) + 1
         # Skip the first row (header), get all remaining rows
         range_names = [f"{sheet_name}!A2:G{num_rows}"]
@@ -102,21 +103,23 @@ def get_data_from_sheet():
         return result.get("valueRanges", [])[0].get("values", [])
     except HttpError:
         return None
-    
+
+
 def shorten_coords(coord_str):
-            try:
-                lat, lng = [float(x) for x in coord_str.strip("[]").split(",")]
-                return f"[{lat:.3f}, {lng:.3f}]"
-            except Exception:
-                return coord_str
+    try:
+        lat, lng = [float(x) for x in coord_str.strip("[]").split(",")]
+        return f"[{lat:.3f}, {lng:.3f}]"
+    except Exception:
+        return coord_str
+
 
 def generate_save_test_data():
-        test_data = []
-        # Approximate coordinates for Yonsei University, Seoul: [37.5665, 126.9386]
-        for i in range(20):
-            lat = round(random.uniform(37.560, 37.570), 6)
-            lng = round(random.uniform(126.930, 126.945), 6)
-            row = [
+    test_data = []
+    # Approximate coordinates for Yonsei University, Seoul: [37.5665, 126.9386]
+    for i in range(20):
+        lat = round(random.uniform(37.560, 37.570), 6)
+        lng = round(random.uniform(126.930, 126.945), 6)
+        row = [
             f"Author{random.randint(1, 5)}",
             f"Problem Title {i+1}",
             f"Description for problem {i+1}",
@@ -124,11 +127,12 @@ def generate_save_test_data():
             f"{random.randint(0,23):02d}:{random.randint(0,59):02d}:{random.randint(0,59):02d}",
             f"[{lat}, {lng}]",
             f"{random.choice(['Pending', 'In Progress', 'Resolved', 'Closed'])}",
-            ]
-            test_data.append(row)
-        
-        for row in test_data:
-            save_to_sheet(row)
+        ]
+        test_data.append(row)
+
+    for row in test_data:
+        save_to_sheet(row)
+
 
 def update_status_in_sheet(selectors, new_status):
     """
@@ -155,11 +159,12 @@ def update_status_in_sheet(selectors, new_status):
                 spreadsheetId=SPREADSHEET_ID,
                 range=f"Sheet1!A2:G{len(all_data)+1}",
                 valueInputOption="RAW",
-                body=body
+                body=body,
             ).execute()
         return updated
     except HttpError:
         return 0
+
 
 if __name__ == "__main__":
     generate_save_test_data()
