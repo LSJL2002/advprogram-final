@@ -149,14 +149,21 @@ elif page == "View Problems":
     max_date = df["Date"].max().date() #Max date of the google sheets
     if min_date == max_date: #There is a bug if the min date and max date is the same the slider will not work.
         max_date += timedelta(days=1)
-    selected_date = st.date_input(
-        "Select a date to view problems:",
-        min_value=min_date,
-        max_value=max_date,
-        value=min_date,
-        format="YYYY-MM-DD"
-)
+    
+    show_all = st.checkbox("Show all dates", value=True)
 
+    if show_all:
+        filtered_df = df.copy()
+        selected_date = None
+    else:
+        selected_date = st.date_input(
+            "Select a date to view problems:",
+            min_value=min_date,
+            max_value=max_date,
+            value=min_date,
+            format="YYYY-MM-DD"
+    )
+        
     filtered_df = df[df["Date"].dt.date == selected_date].copy()
 
     CENTER_START = [37.56325563600076, 126.93753719329834]
