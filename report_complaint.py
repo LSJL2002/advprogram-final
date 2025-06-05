@@ -125,15 +125,15 @@ elif page == "View Problems":
         m = folium.Map(location=CENTER_START, zoom_start=16)
         fg = folium.FeatureGroup(name="Marker")
 
-        for row in data:
-            lat, lng = row[-1].strip("[]").split(", ")
+        for row in df.itertuples(index=False):
+            lat, lng = str(row.Full_Location).strip("[]").split(", ")
             lat, lng = float(lat), float(lng)
             fg.add_child(
                 folium.Marker(
                     location=[lat, lng],
                     draggable=False,
-                    popup=row[1],
-                    tooltip=row[1],
+                    popup=str(row._1),
+                    tooltip=str(row.Description),
                     icon=folium.Icon(icon="exclamation", prefix='fa', color='red', icon_color='white')
                 )
             )
