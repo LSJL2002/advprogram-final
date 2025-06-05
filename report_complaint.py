@@ -153,7 +153,7 @@ elif page == "View Problems":
     if min_date == max_date: #There is a bug if the min date and max date is the same the slider will not work.
         max_date += timedelta(days=1)
     
-    show_all = st.checkbox("Show all dates", value=True)
+    show_all = st.checkbox("Show all dates", value=False)
 
     if show_all:
         filtered_df = df.copy()
@@ -166,8 +166,7 @@ elif page == "View Problems":
             value=min_date,
             format="YYYY-MM-DD"
     )
-        
-    filtered_df = df[df["Date"].dt.date == selected_date].copy()
+        filtered_df = df[df["Date"].dt.date == selected_date].copy()
 
     CENTER_START = [37.56325563600076, 126.93753719329834]
     m_filtered = folium.Map(location=CENTER_START, zoom_start=16)
