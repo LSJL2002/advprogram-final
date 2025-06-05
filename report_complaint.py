@@ -19,8 +19,8 @@ st.sidebar.title("Pages")
 with st.sidebar:
     page = option_menu(
         "Pages",
-        ["Report Problem", "View Problems"],
-        icons=["exclamation-circle", "eye"],
+        ["Report Problem", "View Problems", "Edit"],
+        icons=["exclamation-circle", "eye", "pencil"],
         menu_icon="list",
         default_index=0,
     )
@@ -110,11 +110,14 @@ elif page == "View Problems":
         df = pd.DataFrame(data, columns=columns)
         
 
-        # --- Author filter ---
+        # --- Filters ---
         unique_authors = df["Author"].dropna().unique().tolist()
         unique_authors.sort()
-        author_filter = st.selectbox("Filter by Author", options=["All"] + unique_authors, index=0)
-        status_filter = st.selectbox("Filter by Status", options=["All", "Pending", "In Progress", "Resolved", "Closed"], index=0)
+        col1, col2 = st.columns(2)
+        with col1:
+            author_filter = st.selectbox("Filter by Author", options=["All"] + unique_authors, index=0)
+        with col2:
+            status_filter = st.selectbox("Filter by Status", options=["All", "Pending", "In Progress", "Resolved", "Closed"], index=0)
         
         if author_filter != "All":
             df = df[df["Author"] == author_filter]
@@ -255,3 +258,47 @@ elif page == "View Problems":
                 "displaylogo": False
             }
         )
+
+elif page == "Edit":
+    st.subheader("Edit Problem Statuses")
+    data = get_data_from_sheet()
+    columns = ["Author", "Problem Title", "Description", "Date", "Time", "Location", "Status"]
+    df = pd.DataFrame(data, columns=columns)
+    if not df.empty:
+        df = df.copy()
+        df['Select'] = False
+        # --- Status color styling (text color only) for Edit page ---
+        def color_status_text_edit(col):
+            color_map = {
+                "Pending": "color: #f7b731; font-weight: bold;",
+                "In Progress": "color: #3867d6; font-weight: bold;",
+                "Resolved": "color: #20bf6b; font-weight: bold;",
+                "Closed": "color: #a5b1c2; font-weight: bold;"
+            }
+            return [color_map.get(v, "") for v in col]
+
+        styled_df = df.style.apply(color_status_text_edit, subset=["Status"])
+        edited_df = st.data_editor(
+            styled_df,
+            use_container_width=True,
+            column_order=["Select", "Status", "Author", "Problem Title", "Description", "Date", "Time", "Location"],
+            disabled=["Status", "Author", "Problem Title", "Description", "Date", "Time", "Location"],
+            hide_index=True,
+            key="problems_editor"
+        )
+        selected_rows = edited_df[edited_df['Select']]
+        new_status = st.selectbox('Set new status for selected:', ["Pending", "In Progress", "Resolved", "Closed"])
+        if st.button('Update Status'):
+            if not selected_rows.empty:
+                # Use backend update_status_in_sheet for efficient update
+                from utils import update_status_in_sheet
+                selectors = [(row["Problem Title"], row["Date"], row["Time"]) for _, row in selected_rows.iterrows()]
+                updated = update_status_in_sheet(selectors, new_status)
+                if updated > 0:
+                    st.success(f'Status updated for {updated} problem(s)! Please refresh to see changes.')
+                else:
+                    st.warning('No problems updated. Please check your selection.')
+            else:
+                st.warning('No problems selected.')
+    else:
+        st.write("No problems to edit.")

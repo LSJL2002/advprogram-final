@@ -130,6 +130,36 @@ def generate_save_test_data():
         for row in test_data:
             save_to_sheet(row)
 
+def update_status_in_sheet(selectors, new_status):
+    """
+    selectors: list of tuples (problem_title, date, time) to uniquely identify rows
+    new_status: string, the new status to set
+    """
+    creds = credentials()
+    try:
+        service = build("sheets", "v4", credentials=creds)
+        # Get all data
+        all_data = get_data_from_sheet()
+        updated = 0
+        if all_data is not None:
+            for idx, row in enumerate(all_data):
+                if len(row) >= 7:
+                    title, date, time = row[1], row[3], row[4]
+                    if (title, date, time) in selectors:
+                        all_data[idx][6] = new_status
+                        updated += 1
+        # Write back all data (excluding header)
+        if updated > 0 and all_data is not None:
+            body = {"values": all_data}
+            service.spreadsheets().values().update(
+                spreadsheetId=SPREADSHEET_ID,
+                range=f"Sheet1!A2:G{len(all_data)+1}",
+                valueInputOption="RAW",
+                body=body
+            ).execute()
+        return updated
+    except HttpError:
+        return 0
 
 if __name__ == "__main__":
     generate_save_test_data()
