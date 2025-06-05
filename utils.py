@@ -15,7 +15,7 @@ load_dotenv()
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
 SHEET_RANGE = "Sheet1!A1"
-SHEET_DATA_RANGE = "Sheet1!A1:F1"  # Adjust the range as needed
+SHEET_DATA_RANGE = "Sheet1!A1:G1"  # Adjust the range as needed
 
 def credentials():
     creds = None
@@ -91,7 +91,7 @@ def get_data_from_sheet():
         ).execute()
         num_rows = len(result.get("values", [])) + 1
         # Skip the first row (header), get all remaining rows
-        range_names = [f"{sheet_name}!A2:F{num_rows}"]
+        range_names = [f"{sheet_name}!A2:G{num_rows}"]
         result = (
             service.spreadsheets()
             .values()
@@ -113,16 +113,17 @@ def shorten_coords(coord_str):
 def generate_save_test_data():
         test_data = []
         # Approximate coordinates for Yonsei University, Seoul: [37.5665, 126.9386]
-        for i in range(10):
+        for i in range(20):
             lat = round(random.uniform(37.560, 37.570), 6)
             lng = round(random.uniform(126.930, 126.945), 6)
             row = [
-            f"Author{i+1}",
+            f"Author{random.randint(1, 5)}",
             f"Problem Title {i+1}",
             f"Description for problem {i+1}",
-            "2025-06-04",
+            f"2025-06-0{random.randint(1, 5)}",
             f"{random.randint(0,23):02d}:{random.randint(0,59):02d}:{random.randint(0,59):02d}",
-            f"[{lat}, {lng}]"
+            f"[{lat}, {lng}]",
+            f"{random.choice(['Pending', 'In Progress', 'Resolved', 'Closed'])}",
             ]
             test_data.append(row)
         

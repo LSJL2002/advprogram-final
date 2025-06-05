@@ -3,7 +3,7 @@ import streamlit as st
 import folium
 from streamlit_folium import st_folium
 from streamlit_option_menu import option_menu
-from utils import save_to_sheet, get_data_from_sheet, shorten_coords
+from utils import save_to_sheet, get_data_from_sheet
 from dotenv import load_dotenv #Do not delete this, I need it for the .env to work
 from datetime import timedelta
 import plotly.express as px
@@ -106,20 +106,33 @@ elif page == "View Problems":
 
     if data:
         st.write("## Reported Problems")
-        columns = ["Author", "Problem Title", "Description", "Date", "Time", "Location"]
+        columns = ["Author", "Problem Title", "Description", "Date", "Time", "Location", "Status"]
         df = pd.DataFrame(data, columns=columns)
-        if not df.empty and "Location" in df.columns:
-            df["Full_Location"] = df["Location"]
-            df["Location"] = df["Location"].apply(shorten_coords)
+        
 
         # --- Author filter ---
         unique_authors = df["Author"].dropna().unique().tolist()
         unique_authors.sort()
         author_filter = st.selectbox("Filter by Author", options=["All"] + unique_authors, index=0)
+        status_filter = st.selectbox("Filter by Status", options=["All", "Pending", "In Progress", "Resolved", "Closed"], index=0)
+        
         if author_filter != "All":
             df = df[df["Author"] == author_filter]
+        if status_filter != "All":
+            df = df[df["Status"] == status_filter]
 
-        st.dataframe(df, use_container_width=True)
+        # --- Status color styling (text color only) ---
+        def color_status_text(col):
+            color_map = {
+                "Pending": "color: #f7b731; font-weight: bold;",
+                "In Progress": "color: #3867d6; font-weight: bold;",
+                "Resolved": "color: #20bf6b; font-weight: bold;",
+                "Closed": "color: #a5b1c2; font-weight: bold;"
+            }
+            return [color_map.get(v, "") for v in col]
+
+        styled_df = df.style.apply(color_status_text, subset=["Status"])
+        st.dataframe(styled_df, use_container_width=True, column_order=["Status","Author", "Problem Title", "Description", "Date", "Time", "Location"])
 
         st.markdown("---")
         st.write("### Map of Reported Problems")
@@ -129,13 +142,13 @@ elif page == "View Problems":
         fg = folium.FeatureGroup(name="Marker")
 
         for row in df.itertuples(index=False):
-            lat, lng = str(row.Full_Location).strip("[]").split(", ")
+            lat, lng = str(row.Location).strip("[]").split(", ")
             lat, lng = float(lat), float(lng)
             fg.add_child(
                 folium.Marker(
                     location=[lat, lng],
                     draggable=False,
-                    popup=str(row.Description),
+                    popup=str(row._1),
                     tooltip=str(row._1),
                     icon=folium.Icon(icon="exclamation", prefix='fa', color='red', icon_color='white')
                 )
@@ -177,7 +190,7 @@ elif page == "View Problems":
     else:
         st.write(f"**Total number of problems reported on {selected_date}: {len(filtered_df)}**")
         for _, row in filtered_df.iterrows():
-            lat, lng = row["Full_Location"].strip("[]").split(", ")
+            lat, lng = row["Location"].strip("[]").split(", ")
             lat, lng = float(lat), float(lng)
             fg_filtered.add_child(
                 folium.Marker(
