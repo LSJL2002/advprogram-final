@@ -77,7 +77,7 @@ if page == "Report Problem":
             ]
             result = save_to_sheet(values)
             if result:
-                st.toast("Form submitted and saved to Google Sheet!", icon="✅")
+                st.toast(f"Form submitted and saved to Google Sheet! {complaint.__str__()}", icon="✅")
                 st.session_state.data_updated = True
             else:
                 st.toast("Failed to save to Google Sheet.", icon="❌")

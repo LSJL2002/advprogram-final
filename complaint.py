@@ -33,13 +33,12 @@ class Complaint:
                 self.description,
                 self.date,
                 self.time,
-                self.location,
-                self.status
+                self.location
             ]
         )
 
     def __str__(self):
-        return f"Complaint by {self.author} on {self.date} at {self.time}: {self.problem} - {self.description} (Location: {self.location}), Current Status: {self.status}"
+        return f"Complaint by {self.author} on {self.date} at {self.time}: Problem title:{self.problem}, Problem Description: {self.description} (Location: {self.location}), Current Status: {self.status}"
 
     def __repr__(self):
         return self.__str__()
