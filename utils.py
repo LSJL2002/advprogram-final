@@ -66,11 +66,14 @@ def append_values(spreadsheet_id, range_name, value_input_option, _values):
 
 
 def save_to_sheet(values):
+    # Ensure 'Pending' is always set as the status if not already present
+    if len(values) < 7:
+        values.append("Pending")
     result = append_values(SPREADSHEET_ID, SHEET_RANGE, "RAW", values)
     if isinstance(result, HttpError):
-        # print(f"An error occurred: {result}")
         return None
     return result
+
 
 
 def get_data_from_sheet():

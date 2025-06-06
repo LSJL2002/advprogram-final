@@ -118,7 +118,7 @@ if page == "Report Problem":
 
 
 elif page == "View Problems":
-    if st.session_state.get("last_page") != "View Problems" or st.session_state.get(
+    if st.session_state.get("last_page") != "View Problems" or "Edit" or st.session_state.get(
         "data_updated", False
     ):
         st.session_state.view_data = get_data_from_sheet()
