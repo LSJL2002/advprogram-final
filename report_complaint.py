@@ -73,6 +73,7 @@ if page == "Report Problem":
                 str(complaint.date),
                 str(complaint.time),
                 str(complaint.location),
+                str(complaint.status)
             ]
             result = save_to_sheet(values)
             if result:

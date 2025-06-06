@@ -6,7 +6,7 @@ class Complaint:
         description=None,
         date=None,
         time=None,
-        location=None,
+        location=None
     ):
         self.author = author
         self.problem = problem
@@ -34,11 +34,12 @@ class Complaint:
                 self.date,
                 self.time,
                 self.location,
+                self.status
             ]
         )
 
     def __str__(self):
-        return f"Complaint by {self.author} on {self.date} at {self.time}: {self.problem} - {self.description} (Location: {self.location})"
+        return f"Complaint by {self.author} on {self.date} at {self.time}: {self.problem} - {self.description} (Location: {self.location}), Current Status: {self.status}"
 
     def __repr__(self):
         return self.__str__()
