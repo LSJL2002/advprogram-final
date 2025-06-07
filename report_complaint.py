@@ -119,12 +119,13 @@ if page == "Report Problem":
 
 
 elif page == "View Problems":
-    if st.session_state.get("last_page") != "View Problems" or "Edit" or st.session_state.get(
-        "data_updated", False
+    if (
+        st.session_state.get("last_page") != "View Problems"
+        or st.session_state.get("data_updated", False)
     ):
         st.session_state.view_data = get_data_from_sheet()
         st.session_state.last_page = "View Problems"
-        st.session_state.data_updated = False  # Reset the flag after updating
+        st.session_state.data_updated = False
 
     data = st.session_state.get("view_data", [])
 
@@ -193,15 +194,39 @@ elif page == "View Problems":
         m = folium.Map(location=CENTER_START, zoom_start=16)
         fg = folium.FeatureGroup(name="Marker")
 
-        for row in df.itertuples(index=False):
-            lat, lng = str(row.Location).strip("[]").split(", ")
+        location_counts = df["Location"].value_counts()
+
+        # Group for popups
+        grouped = (
+            df.groupby("Location")
+            .apply(lambda g: "<br>".join(
+                f"<b>{row['Problem Title']}</b> ({row['Status']})<br>{row['Description']}" for _, row in g.iterrows()
+            ))
+            .reset_index()
+            .rename(columns={0: "Popup"})
+        )
+
+        for _, row in grouped.iterrows():
+            lat, lng = str(row["Location"]).strip("[]").split(", ")
             lat, lng = float(lat), float(lng)
+            count = location_counts[row["Location"]]
+            if count > 1:
+                popup = folium.Popup(row["Popup"], max_width=300)
+                tooltip = "Multiple problems"
+            else:
+                # Show only the single problem's title and description
+                single = df[df["Location"] == row["Location"]].iloc[0]
+                popup = folium.Popup(
+                    f"<b>{single['Problem Title']}</b> ({single['Status']})<br>{single['Description']}",
+                    max_width=300,
+                )
+                tooltip = f"{single['Problem Title']}"
             fg.add_child(
                 folium.Marker(
                     location=[lat, lng],
                     draggable=False,
-                    popup=str(row._1),
-                    tooltip=str(row._1),
+                    popup=popup,
+                    tooltip=tooltip,
                     icon=folium.Icon(
                         icon="exclamation", prefix="fa", color="red", icon_color="white"
                     ),
@@ -213,7 +238,6 @@ elif page == "View Problems":
     else:
         st.write("No problems reported yet.")
 
-    # A new map with a slider that will show the problems based on the date
     df["Date"] = pd.to_datetime(df["Date"])
 
     min_date = df["Date"].min().date()  # Gets the min date of the google sheets
@@ -227,7 +251,7 @@ elif page == "View Problems":
 
     if show_all:
         filtered_df = df.copy()
-        selected_date = None
+        selected_date = "All Days"
     else:
         selected_date = st.date_input(
             "Select a date to view problems:",
@@ -327,7 +351,16 @@ elif page == "View Problems":
 
 elif page == "Edit":
     st.subheader("Edit Problem Statuses")
-    data = get_data_from_sheet()
+    # Always fetch fresh data when entering or after update
+    if (
+        st.session_state.get("last_page") != "Edit"
+        or st.session_state.get("data_updated", False)
+    ):
+        st.session_state.edit_data = get_data_from_sheet()
+        st.session_state.last_page = "Edit"
+        st.session_state.data_updated = False
+
+    data = st.session_state.get("edit_data", [])
     columns = [
         "Author",
         "Problem Title",
